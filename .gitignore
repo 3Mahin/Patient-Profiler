@@ -1,0 +1,22 @@
+# Python / Backend
+backend/venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/.pytest_cache/
+
+# Databases & User Uploads
+backend/database/patients.db
+backend/chroma_db/
+backend/uploads/
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.env*
+frontend/.vite/
+
+# OS Files
+.DS_Store
+Thumbs.db
