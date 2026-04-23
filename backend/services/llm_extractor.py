@@ -87,3 +87,33 @@ def update_summary_from_chat(existing_summary: str, query: str, response: str) -
     except Exception as e:
         print(f"Error updating summary from chat: {e}")
         return existing_summary
+
+def rewrite_summary_from_history(existing_summary: str, full_history: dict) -> str:
+    """
+    Rewrites the patient summary to accurately reflect the current structured history.
+    """
+    system_prompt = f"""
+    You are an expert medical summarizer.
+    You have a patient's CURRENT structured medical history:
+    {json.dumps(full_history, indent=2)}
+    
+    You also have their previous summary:
+    EXISTING SUMMARY: {existing_summary}
+    
+    Your task is to rewrite the summary so it perfectly aligns with the CURRENT structured history.
+    If the existing summary mentions a medication, surgery, or test that is NO LONGER in the structured history, you MUST remove it from the new summary.
+    If there are new items in the structured history not in the summary, add a brief mention.
+    Keep the summary concise (2-4 sentences). Output ONLY the summary text, nothing else.
+    """
+    try:
+        completion = client.chat.completions.create(
+            model="local-model",
+            messages=[
+                {"role": "system", "content": system_prompt}
+            ],
+            temperature=0.1
+        )
+        return completion.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"Error rewriting summary from history: {e}")
+        return existing_summary

@@ -3,7 +3,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTa
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional, Dict
 
 from database import models
 from services import ocr_service, llm_extractor, rag_service
@@ -33,6 +33,15 @@ class PatientCreate(BaseModel):
 class ChatRequest(BaseModel):
     query: str
     language: str = "English"
+
+class HistoryUpdate(BaseModel):
+    category: str
+    action: str
+    old_item: Optional[Dict] = None
+    new_item: Optional[Dict] = None
+
+class Prescription(BaseModel):
+    medications: List[dict]
 
 @app.get("/api/status")
 def get_status():
@@ -141,6 +150,48 @@ def get_history(patient_id: int):
         
     return models.get_patient_history(patient_id)
 
+def sync_rewrite_summary(patient_id: int):
+    current_history = models.get_patient_history(patient_id)
+    existing_summary = current_history.get("summary", "")
+    history_without_summary = {k: v for k, v in current_history.items() if k != "summary"}
+    
+    new_summary = llm_extractor.rewrite_summary_from_history(existing_summary, history_without_summary)
+    if new_summary and new_summary != existing_summary:
+        models.update_patient_summary(patient_id, new_summary)
+
+@app.post("/api/history/{patient_id}/update")
+def update_history(patient_id: int, update: HistoryUpdate):
+    patients = models.get_patients()
+    if not any(p['id'] == patient_id for p in patients):
+        raise HTTPException(status_code=404, detail="Patient not found")
+        
+    try:
+        models.update_history_item(
+            patient_id, 
+            update.category, 
+            update.action, 
+            update.old_item, 
+            update.new_item
+        )
+        sync_rewrite_summary(patient_id)
+        return {"message": "History updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/patients/{patient_id}/prescription")
+def save_prescription(patient_id: int, prescription: Prescription):
+    patients = models.get_patients()
+    if not any(p['id'] == patient_id for p in patients):
+        raise HTTPException(status_code=404, detail="Patient not found")
+        
+    try:
+        data = {"medications": prescription.medications}
+        models.save_patient_history(patient_id, data, "Prescription")
+        sync_rewrite_summary(patient_id)
+        return {"message": "Prescription saved successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 def background_summary_update(patient_id: int, query: str, response: str, existing_summary: str):
     new_summary = llm_extractor.update_summary_from_chat(existing_summary, query, response)
     if new_summary != existing_summary:
@@ -154,7 +205,14 @@ def chat_with_records(patient_id: int, request: ChatRequest, background_tasks: B
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
         
-    response_text = rag_service.chat_with_records(patient_id, request.query, request.language)
+    current_history = models.get_patient_history(patient_id)
+        
+    response_text = rag_service.chat_with_records(
+        patient_id, 
+        request.query, 
+        request.language,
+        structured_history=current_history
+    )
     
     # Trigger background summary update
     existing_summary = patient.get('summary', '')

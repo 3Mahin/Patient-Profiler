@@ -90,6 +90,49 @@ def save_patient_history(patient_id: int, extracted_data: dict, source_file: str
     conn.commit()
     conn.close()
 
+def update_history_item(patient_id: int, category: str, action: str, old_item: dict, new_item: dict = None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, extracted_data FROM patient_history WHERE patient_id = ? ORDER BY created_at ASC', (patient_id,))
+    rows = cursor.fetchall()
+    
+    if action == 'add':
+        data = {category: [new_item]}
+        cursor.execute('''
+            INSERT INTO patient_history (patient_id, extracted_data, source_file)
+            VALUES (?, ?, ?)
+        ''', (patient_id, json.dumps(data), "Manual Entry"))
+    else:
+        for row in rows:
+            row_id = row['id']
+            try:
+                data = json.loads(row['extracted_data'])
+                if category in data and isinstance(data[category], list):
+                    original_list = data[category]
+                    new_list = []
+                    modified = False
+                    for item in original_list:
+                        item_name = item.get('name', '') if isinstance(item, dict) else item
+                        old_item_name = old_item.get('name', '') if isinstance(old_item, dict) else old_item
+                        
+                        if item_name == old_item_name:
+                            if action == 'edit':
+                                new_list.append(new_item)
+                                modified = True
+                            elif action == 'delete':
+                                modified = True
+                        else:
+                            new_list.append(item)
+                    
+                    if modified:
+                        data[category] = new_list
+                        cursor.execute('UPDATE patient_history SET extracted_data = ? WHERE id = ?', (json.dumps(data), row_id))
+            except Exception:
+                pass
+                
+    conn.commit()
+    conn.close()
+
 def get_patient_history(patient_id: int):
     conn = get_connection()
     cursor = conn.cursor()

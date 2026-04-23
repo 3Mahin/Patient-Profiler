@@ -2,6 +2,7 @@ import chromadb
 from chromadb.utils import embedding_functions
 from openai import OpenAI
 import os
+import json
 
 # Ensure ChromaDB uses a local directory for persistence
 DB_DIR = os.path.join(os.path.dirname(__file__), "..", "chroma_db")
@@ -35,7 +36,7 @@ def index_document(patient_id: int, text: str, source: str):
         ids=ids
     )
 
-def chat_with_records(patient_id: int, query: str, language: str = "English") -> str:
+def chat_with_records(patient_id: int, query: str, language: str = "English", structured_history: dict = None) -> str:
     """Retrieves relevant chunks from ChromaDB and asks the local LLM to answer the query."""
     # Retrieve relevant documents
     results = collection.query(
@@ -47,6 +48,10 @@ def chat_with_records(patient_id: int, query: str, language: str = "English") ->
     context_chunks = results['documents'][0] if results['documents'] else []
     context = "\n---\n".join(context_chunks)
     
+    history_context = ""
+    if structured_history:
+        history_context = f"\nLATEST STRUCTURED MEDICAL HISTORY (Highest Priority):\n{json.dumps(structured_history, indent=2)}\n"
+    
     system_prompt = f"""
     You are a helpful and knowledgeable medical assistant chatbot. 
     A doctor is asking you a question about a patient's medical records.
@@ -55,8 +60,8 @@ def chat_with_records(patient_id: int, query: str, language: str = "English") ->
     The context might contain a mix of English and Bengali.
     
     IMPORTANT INSTRUCTION: You MUST reply entirely in {language}. Do not use any other language for your response.
-    
-    CONTEXT:
+    {history_context}
+    DOCUMENT CONTEXT:
     {context}
     """
     

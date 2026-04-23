@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { FileText, Loader2, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import axios from 'axios';
+import { FileText, Loader2, Calendar, ChevronDown, ChevronUp, Pencil, Trash2, Plus } from 'lucide-react';
+import EditHistoryModal from './EditHistoryModal';
 
 const groupHistoryItems = (items) => {
   if (!items || !items.length) return [];
@@ -10,11 +12,9 @@ const groupHistoryItems = (items) => {
     const rawName = item.name || item;
     const date = item.date || "Date not available";
     
-    // Aggressive normalization: take the primary identifier (usually the first word)
     let tokens = rawName.toLowerCase().split(/[\s,(]+/);
     let key = tokens[0] || rawName.toLowerCase();
     
-    // If the first word is a generic medical term, use the first two words to avoid bad grouping
     const genericTerms = ['vitamin', 'blood', 'complete', 'chest', 'mri', 'ct', 'x-ray', 'serum', 'urine'];
     if (genericTerms.includes(key) && tokens.length > 1) {
       key = tokens[0] + ' ' + tokens[1];
@@ -23,12 +23,8 @@ const groupHistoryItems = (items) => {
     if (!groups[key]) {
       groups[key] = { latest: { name: rawName, date }, history: [] };
     } else {
-      // If we encounter a duplicate, push the current "latest" to history, and set the new one as latest.
-      // We assume the DB returns them chronologically (oldest to newest), so the last one processed is the newest.
-      
-      // Only add to history if the exact name or date is different from the current latest
       if (groups[key].latest.name !== rawName || groups[key].latest.date !== date) {
-        groups[key].history.unshift(groups[key].latest); // push old latest to history (unshift so newest history is on top)
+        groups[key].history.unshift(groups[key].latest);
         groups[key].latest = { name: rawName, date };
       }
     }
@@ -37,7 +33,7 @@ const groupHistoryItems = (items) => {
   return Object.values(groups);
 };
 
-const HistoryItemNode = ({ itemData }) => {
+const HistoryItemNode = ({ itemData, category, onEdit, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   const { latest, history } = itemData;
   const hasHistory = history.length > 0;
@@ -48,7 +44,7 @@ const HistoryItemNode = ({ itemData }) => {
         onClick={() => hasHistory && setExpanded(!expanded)}
         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', width: '100%', cursor: hasHistory ? 'pointer' : 'default', userSelect: 'none' }}
       >
-        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
           {latest.name} 
           {hasHistory && (
             <span style={{ fontSize: '0.75rem', padding: '2px 8px', background: '#e0f2fe', color: '#0284c7', borderRadius: '12px', fontWeight: 600 }}>
@@ -56,9 +52,16 @@ const HistoryItemNode = ({ itemData }) => {
             </span>
           )}
         </span>
-        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
-          <Calendar size={12} /> {latest.date}
-          {hasHistory && (expanded ? <ChevronUp size={14} style={{marginLeft: 2}} /> : <ChevronDown size={14} style={{marginLeft: 2}} />)}
+        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} /> {latest.date}</span>
+          {hasHistory && (expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+          
+          <button className="icon-btn" style={{ padding: '2px', marginLeft: '8px' }} onClick={(e) => { e.stopPropagation(); onEdit(category, latest); }}>
+            <Pencil size={14} color="#64748b" />
+          </button>
+          <button className="icon-btn" style={{ padding: '2px' }} onClick={(e) => { e.stopPropagation(); onDelete(category, latest); }}>
+            <Trash2 size={14} color="#ef4444" />
+          </button>
         </span>
       </div>
       
@@ -67,7 +70,15 @@ const HistoryItemNode = ({ itemData }) => {
           {history.map((hist, idx) => (
             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: '0.9rem', color: '#64748b' }}>
               <span>{hist.name}</span>
-              <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}><Calendar size={12} /> {hist.date}</span>
+              <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} /> {hist.date}</span>
+                <button className="icon-btn" style={{ padding: '2px', marginLeft: '8px' }} onClick={(e) => { e.stopPropagation(); onEdit(category, hist); }}>
+                  <Pencil size={12} color="#94a3b8" />
+                </button>
+                <button className="icon-btn" style={{ padding: '2px' }} onClick={(e) => { e.stopPropagation(); onDelete(category, hist); }}>
+                  <Trash2 size={12} color="#ef4444" />
+                </button>
+              </span>
             </div>
           ))}
         </div>
@@ -76,7 +87,8 @@ const HistoryItemNode = ({ itemData }) => {
   );
 };
 
-export default function PatientHistory({ data, loading }) {
+export default function PatientHistory({ data, loading, patientId, apiBase, onRefresh, setGlobalLoadingMessage }) {
+  const [modalState, setModalState] = useState({ isOpen: false, category: '', action: '', initialData: null });
   
   if (loading) {
     return (
@@ -103,6 +115,33 @@ export default function PatientHistory({ data, loading }) {
   const groupedSurgeries = groupHistoryItems(data.surgeries);
   const groupedTests = groupHistoryItems(data.tests);
 
+  const handleEdit = (category, item) => {
+    setModalState({ isOpen: true, category, action: 'edit', initialData: item });
+  };
+
+  const handleAdd = (category) => {
+    setModalState({ isOpen: true, category, action: 'add', initialData: null });
+  };
+
+  const handleDelete = async (category, item) => {
+    if (!window.confirm(`Are you sure you want to delete "${item.name}"?`)) return;
+    setGlobalLoadingMessage(`Deleting ${item.name}...`);
+    try {
+      await axios.post(`${apiBase}/history/${patientId}/update`, {
+        category,
+        action: 'delete',
+        old_item: item,
+        new_item: null
+      });
+      onRefresh();
+    } catch (err) {
+      console.error("Failed to delete", err);
+      alert("Failed to delete item.");
+    } finally {
+      setGlobalLoadingMessage('');
+    }
+  };
+
   return (
     <div className="glass-panel">
       <h2 className="panel-title"><FileText size={20} /> Medical History Dataset</h2>
@@ -117,10 +156,13 @@ export default function PatientHistory({ data, loading }) {
         </div>
 
         <div className="history-section">
-          <div className="history-section-title">Medications</div>
+          <div className="history-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            Medications
+            <button className="icon-btn" onClick={() => handleAdd('medications')}><Plus size={18} /></button>
+          </div>
           {groupedMedications.length > 0 ? (
             <ul className="history-list">
-              {groupedMedications.map((itemData, i) => <HistoryItemNode key={i} itemData={itemData} />)}
+              {groupedMedications.map((itemData, i) => <HistoryItemNode key={i} itemData={itemData} category="medications" onEdit={handleEdit} onDelete={handleDelete} />)}
             </ul>
           ) : (
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No medications found.</p>
@@ -128,10 +170,13 @@ export default function PatientHistory({ data, loading }) {
         </div>
 
         <div className="history-section">
-          <div className="history-section-title">Surgeries & Procedures</div>
+          <div className="history-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            Surgeries & Procedures
+            <button className="icon-btn" onClick={() => handleAdd('surgeries')}><Plus size={18} /></button>
+          </div>
           {groupedSurgeries.length > 0 ? (
             <ul className="history-list">
-              {groupedSurgeries.map((itemData, i) => <HistoryItemNode key={i} itemData={itemData} />)}
+              {groupedSurgeries.map((itemData, i) => <HistoryItemNode key={i} itemData={itemData} category="surgeries" onEdit={handleEdit} onDelete={handleDelete} />)}
             </ul>
           ) : (
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No surgeries found.</p>
@@ -139,10 +184,13 @@ export default function PatientHistory({ data, loading }) {
         </div>
 
         <div className="history-section">
-          <div className="history-section-title">Tests & Results</div>
+          <div className="history-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            Tests & Results
+            <button className="icon-btn" onClick={() => handleAdd('tests')}><Plus size={18} /></button>
+          </div>
           {groupedTests.length > 0 ? (
             <ul className="history-list">
-              {groupedTests.map((itemData, i) => <HistoryItemNode key={i} itemData={itemData} />)}
+              {groupedTests.map((itemData, i) => <HistoryItemNode key={i} itemData={itemData} category="tests" onEdit={handleEdit} onDelete={handleDelete} />)}
             </ul>
           ) : (
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No tests found.</p>
@@ -150,6 +198,18 @@ export default function PatientHistory({ data, loading }) {
         </div>
 
       </div>
+
+      <EditHistoryModal 
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState({ ...modalState, isOpen: false })}
+        onSave={onRefresh}
+        patientId={patientId}
+        apiBase={apiBase}
+        category={modalState.category}
+        action={modalState.action}
+        initialData={modalState.initialData}
+        setGlobalLoadingMessage={setGlobalLoadingMessage}
+      />
     </div>
   );
 }

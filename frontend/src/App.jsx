@@ -4,6 +4,8 @@ import { Activity, Plus, UploadCloud, User, Camera } from 'lucide-react';
 import PatientHistory from './components/PatientHistory';
 import ChatInterface from './components/ChatInterface';
 import UploadModal from './components/UploadModal';
+import PrescriptionModal from './components/PrescriptionModal';
+import { FilePlus } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000/api';
 const SERVER_BASE = 'http://localhost:8000';
@@ -12,8 +14,10 @@ function App() {
   const [patients, setPatients] = useState([]);
   const [activePatient, setActivePatient] = useState(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
   const [historyData, setHistoryData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState('');
   const [systemStatus, setSystemStatus] = useState({ status: 'yellow', message: 'Checking...' });
   
   const fileInputRef = useRef(null);
@@ -173,7 +177,14 @@ function App() {
                 </div>
               </div>
               
-              <div className="actions">
+              <div className="actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <button 
+                  className="btn-secondary" 
+                  onClick={() => setIsPrescriptionModalOpen(true)}
+                >
+                  <FilePlus size={20} />
+                  New Prescription
+                </button>
                 <button 
                   className="btn-primary" 
                   onClick={() => setIsUploadModalOpen(true)}
@@ -185,7 +196,7 @@ function App() {
             </header>
 
             <div className="dashboard-grid">
-              <PatientHistory data={historyData} loading={loading} />
+              <PatientHistory data={historyData} loading={loading} patientId={activePatient.id} apiBase={API_BASE} onRefresh={() => fetchPatientHistory(activePatient.id)} setGlobalLoadingMessage={setGlobalLoadingMessage} />
               <ChatInterface patientId={activePatient.id} apiBase={API_BASE} systemStatus={systemStatus} />
             </div>
           </>
@@ -205,6 +216,21 @@ function App() {
           onClose={() => setIsUploadModalOpen(false)}
           onUploadComplete={handleUploadComplete}
         />
+      )}
+      <PrescriptionModal
+        isOpen={isPrescriptionModalOpen}
+        onClose={() => setIsPrescriptionModalOpen(false)}
+        patient={activePatient}
+        apiBase={API_BASE}
+        onSave={() => fetchPatientHistory(activePatient?.id)}
+        setGlobalLoadingMessage={setGlobalLoadingMessage}
+      />
+      {globalLoadingMessage && (
+        <div className="modal-overlay" style={{ zIndex: 9999, flexDirection: 'column', color: 'white', background: 'rgba(15, 23, 42, 0.7)' }}>
+          <div className="spin" style={{ marginBottom: '16px' }}><Activity size={48} /></div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 600 }}>{globalLoadingMessage}</h2>
+          <p style={{ marginTop: '8px', opacity: 0.8 }}>Please wait while the AI updates the patient records...</p>
+        </div>
       )}
     </div>
   );
