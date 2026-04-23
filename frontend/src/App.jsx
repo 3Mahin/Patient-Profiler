@@ -165,6 +165,8 @@ function App() {
                   </div>
                   <input 
                     type="file" 
+                    id="profile-image-upload"
+                    name="profile-image-upload"
                     ref={fileInputRef} 
                     style={{ display: 'none' }} 
                     accept="image/*"
@@ -177,7 +179,7 @@ function App() {
                 </div>
               </div>
               
-              <div className="actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <div className="actions">
                 <button 
                   className="btn-secondary" 
                   onClick={() => setIsPrescriptionModalOpen(true)}

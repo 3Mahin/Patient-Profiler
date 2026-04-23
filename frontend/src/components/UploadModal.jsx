@@ -74,6 +74,7 @@ export default function UploadModal({ patientId, apiBase, onClose, onUploadCompl
             type="file" 
             style={{ display: 'none' }} 
             id="file-upload" 
+            name="file-upload"
             onChange={handleFileChange}
             accept=".pdf,.png,.jpg,.jpeg"
           />

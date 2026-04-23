@@ -571,12 +571,43 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Responsive Layout Utility Classes */
+.actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.rx-med-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+
+.rx-med-inputs {
+  display: flex;
+  gap: 8px;
+}
+
 /* Responsive Design */
 @media (max-width: 1280px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 600px;
+    grid-template-rows: auto;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
+  }
+  .glass-panel {
+    min-height: 500px;
+  }
+  .glass-panel + .glass-panel {
+    border-left: none;
+    border-top: 1px solid var(--border-color);
+  }
+  .history-container, .chat-container {
+    overflow: visible;
   }
 }
 
@@ -619,6 +650,21 @@ body {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+  }
+
+  .actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .rx-med-row, .rx-med-inputs {
+    flex-direction: column;
   }
 }
 

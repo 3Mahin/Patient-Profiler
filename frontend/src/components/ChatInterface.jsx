@@ -136,16 +136,18 @@ export default function ChatInterface({ patientId, apiBase, systemStatus = { sta
         </div>
 
         <div className="chat-input-container">
-          <input 
-            type="text" 
-            className="chat-input" 
-            placeholder="Ask a question about the records..."
+          <input
+            type="text"
+            id="chat-input"
+            name="chat-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend(null)}
-            disabled={isLoading}
+            placeholder={systemStatus.status === 'red' ? "AI is offline..." : "Ask a question about this patient..."}
+            className="chat-input"
+            disabled={isLoading || systemStatus.status === 'red'}
           />
-          <button className="send-btn" onClick={() => handleSend(null)} disabled={isLoading}>
+          <button className="send-btn" onClick={() => handleSend(null)} disabled={isLoading || systemStatus.status === 'red'}>
             <Send size={20} />
           </button>
         </div>

@@ -54,9 +54,11 @@ export default function EditHistoryModal({ isOpen, onClose, onSave, patientId, c
         
         <form onSubmit={handleSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div className="form-group">
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Name</label>
+            <label htmlFor="edit-name" style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Name</label>
             <input 
               type="text" 
+              id="edit-name"
+              name="edit-name"
               value={name} 
               onChange={(e) => setName(e.target.value)} 
               required
@@ -66,9 +68,11 @@ export default function EditHistoryModal({ isOpen, onClose, onSave, patientId, c
           </div>
 
           <div className="form-group">
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Date</label>
+            <label htmlFor="edit-date" style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Date</label>
             <input 
               type="text" 
+              id="edit-date"
+              name="edit-date"
               value={date} 
               onChange={(e) => setDate(e.target.value)} 
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}

@@ -96,19 +96,23 @@ export default function PrescriptionModal({ isOpen, onClose, patient, apiBase, o
 
           <div className="rx-medications">
             {medications.map((med, index) => (
-              <div key={index} className="rx-med-row" style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
+              <div key={index} className="rx-med-row">
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <input 
                     type="text" 
+                    id={`med-name-${index}`}
+                    name={`med-name-${index}`}
                     placeholder="Medication Name (e.g. Amoxicillin 500mg)" 
                     value={med.name} 
                     onChange={(e) => handleChange(index, 'name', e.target.value)}
                     className="rx-input print-text"
                     style={{ fontWeight: 'bold', fontSize: '16px' }}
                   />
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="rx-med-inputs">
                     <input 
                       type="text" 
+                      id={`med-dosage-${index}`}
+                      name={`med-dosage-${index}`}
                       placeholder="Dosage" 
                       value={med.dosage} 
                       onChange={(e) => handleChange(index, 'dosage', e.target.value)}
@@ -117,6 +121,8 @@ export default function PrescriptionModal({ isOpen, onClose, patient, apiBase, o
                     />
                     <input 
                       type="text" 
+                      id={`med-freq-${index}`}
+                      name={`med-freq-${index}`}
                       placeholder="Frequency (e.g. 1-0-1)" 
                       value={med.frequency} 
                       onChange={(e) => handleChange(index, 'frequency', e.target.value)}
@@ -125,6 +131,8 @@ export default function PrescriptionModal({ isOpen, onClose, patient, apiBase, o
                     />
                     <input 
                       type="text" 
+                      id={`med-dur-${index}`}
+                      name={`med-dur-${index}`}
                       placeholder="Duration (e.g. 5 days)" 
                       value={med.duration} 
                       onChange={(e) => handleChange(index, 'duration', e.target.value)}
@@ -157,7 +165,7 @@ export default function PrescriptionModal({ isOpen, onClose, patient, apiBase, o
         </div>
 
         {/* Screen Footer (Hidden on print) */}
-        <div className="modal-footer no-print" style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#f8fafc', borderRadius: '0 0 12px 12px' }}>
+        <div className="modal-footer no-print" style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#f8fafc', borderRadius: '0 0 12px 12px', flexWrap: 'wrap' }}>
           <button className="btn-secondary" onClick={handlePrint}>
             <Printer size={20} /> Print
           </button>
