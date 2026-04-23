@@ -5,9 +5,11 @@ Patient Profiler is a professional, enterprise-grade clinical dashboard designed
 ## ✨ Key Features
 
 - **Local AI-Powered Document Analysis:** Upload medical PDFs or images and automatically extract structured medical history using local Multimodal LLMs (e.g., Gemma).
-- **Living Summary:** Automatically maintains and updates a concise "living summary" of a patient's health based on newly uploaded documents and chat interactions.
+- **Living Summary & Synchronous Context:** Automatically maintains and updates a concise "living summary" of a patient's health. Any manual modifications to a patient's medical history immediately trigger the local AI to rewrite this summary, guaranteeing the Chatbot's context is 100% accurate.
+- **Clinical Prescription Generator:** Create, format, and print professional multi-medication prescriptions directly from the dashboard. Prescriptions are automatically synced to the patient's longitudinal history.
+- **Manual History Management:** Clinicians can manually add, edit, or delete medications, surgeries, and test results alongside AI-extracted data.
 - **RAG Chat Interface:** Chat directly with your patient's historical records using Retrieval-Augmented Generation (ChromaDB + Local LLM) to instantly find critical medical information. Multilingual support included.
-- **Enterprise-Grade UI/UX:** An optimized edge-to-edge layout maximizing screen real estate, featuring dynamic data visualization, accordion-style history segments, and real-time backend/LLM connection status indicators.
+- **Enterprise-Grade UI/UX:** An optimized edge-to-edge layout maximizing screen real estate, featuring dynamic data visualization, accordion-style history segments, real-time status indicators, and robust global loading guardrails to prevent data race conditions.
 - **Privacy First:** 100% local processing. No patient data leaves your machine.
 
 ## 🛠️ Technology Stack
