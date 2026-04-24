@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { X, Plus, Trash2, Printer, Save, Loader2 } from 'lucide-react';
+import { X, Plus, Trash2, Printer, Save, Loader2, Edit2, Check } from 'lucide-react';
 
 export default function PrescriptionModal({ isOpen, onClose, patient, apiBase, onSave, setGlobalLoadingMessage }) {
   const [medications, setMedications] = useState([{ name: '', dosage: '', frequency: '', duration: '' }]);
+  const [clinicName, setClinicName] = useState('Dr. Smith Clinic');
+  const [clinicAddress, setClinicAddress] = useState('123 Medical Way, Health City, HC 12345');
+  const [isEditingClinic, setIsEditingClinic] = useState(false);
 
   if (!isOpen || !patient) return null;
 
@@ -62,7 +65,7 @@ export default function PrescriptionModal({ isOpen, onClose, patient, apiBase, o
   };
 
   return (
-    <div className="modal-overlay print-modal">
+    <div className="modal-overlay print-modal" style={{ alignItems: 'flex-start', paddingTop: '4vh' }}>
       <div className="modal-content rx-modal-content">
         
         {/* Screen Header (Hidden on print) */}
@@ -74,9 +77,43 @@ export default function PrescriptionModal({ isOpen, onClose, patient, apiBase, o
         {/* Printable Area */}
         <div className="print-area" style={{ padding: '24px' }}>
           
-          <div className="rx-header">
-            <h1 style={{ fontSize: '24px', color: '#0f172a', marginBottom: '8px' }}>Dr. Smith Clinic</h1>
-            <p style={{ color: '#64748b', fontSize: '14px' }}>123 Medical Way, Health City, HC 12345</p>
+          <div className="rx-header" style={{ position: 'relative', paddingRight: '32px' }}>
+            {isEditingClinic ? (
+              <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
+                <input 
+                  type="text" 
+                  value={clinicName} 
+                  onChange={(e) => setClinicName(e.target.value)} 
+                  className="rx-input" 
+                  style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a' }}
+                />
+                <input 
+                  type="text" 
+                  value={clinicAddress} 
+                  onChange={(e) => setClinicAddress(e.target.value)} 
+                  className="rx-input" 
+                  style={{ color: '#64748b', fontSize: '14px' }}
+                />
+                <button className="btn-secondary" onClick={() => setIsEditingClinic(false)} style={{ alignSelf: 'flex-start', padding: '6px 12px', fontSize: '14px', marginTop: '4px' }}>
+                  <Check size={16} /> Done
+                </button>
+              </div>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <h1 style={{ fontSize: '24px', color: '#0f172a', marginBottom: '8px' }}>{clinicName}</h1>
+                <p style={{ color: '#64748b', fontSize: '14px' }}>{clinicAddress}</p>
+                <button className="icon-btn no-print" onClick={() => setIsEditingClinic(true)} style={{ position: 'absolute', top: 0, right: '-32px' }}>
+                  <Edit2 size={16} />
+                </button>
+              </div>
+            )}
+            {/* Fallback for print if left in edit mode */}
+            {isEditingClinic && (
+              <div style={{ display: 'none' }} className="print-fallback">
+                <h1 style={{ fontSize: '24px', color: '#0f172a', marginBottom: '8px' }}>{clinicName}</h1>
+                <p style={{ color: '#64748b', fontSize: '14px' }}>{clinicAddress}</p>
+              </div>
+            )}
             <div style={{ borderBottom: '2px solid #e2e8f0', margin: '20px 0' }}></div>
           </div>
 

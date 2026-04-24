@@ -780,4 +780,7 @@ body {
   .print-text {
     border: none !important;
   }
+  .print-fallback {
+    display: block !important;
+  }
 }
